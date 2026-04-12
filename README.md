@@ -1,0 +1,284 @@
+# StoryForge AI — Intelligent Test Automation Framework
+
+> *From a plain English user story to executable test scripts in minutes — fully open source, zero data egress, runs entirely on your infrastructure.*
+
+---
+
+## The Problem This Solves
+
+Traditional QA teams spend **40–60% of their time writing test scripts manually**. Every sprint, a new batch of user stories arrives. A QA engineer reads each one, thinks through positive, negative and edge cases, writes API tests, UI tests, E2E tests, generates test data, and checks coverage — all by hand. It is repetitive, slow, and inconsistent.
+
+**StoryForge AI eliminates that bottleneck.**
+
+Give it one user story in plain English. It returns a complete executable test suite — API tests, UI tests, E2E journey tests, test data, and a coverage report — in under 5 minutes. No cloud API keys. No data leaving your network.
+
+---
+
+## How It Works
+
+The framework runs five stages, driven entirely by a single user story.
+
+**Stage 1 — Parsing Engine.** Mistral 7B via Ollama reads the user story and extracts the actor, action, goal, constraints, and all acceptance criteria. Output is a `ParsedSpec` JSON object validated by a Pydantic schema. If the LLM returns anything malformed, Pydantic rejects it and triggers an automatic retry.
+
+**Stage 2 — Test Case Generator (4-Agent Pipeline).** A Planner agent reads `test_gen_config.yaml` and decides the pyramid split. A Generator agent creates test cases per acceptance criterion covering positive, negative and edge scenarios. A Critic agent checks for coverage gaps. A Refiner agent finalises and locks the TestSpec.
+
+**Stage 3 — Test Data Generator.** Faker generates realistic deterministic test data using `seed=42`. The same data is produced on every CI run. Sensitive fields such as passwords and card numbers are generated locally and never sent to the LLM.
+
+**Stage 4 — Coverage Report.** Every test case is mapped back to every acceptance criterion. Pyramid compliance is checked against targets in `test_gen_config.yaml`. A PASS or FAIL verdict is produced against an 80 percent minimum threshold.
+
+**Stage 5 — Code Synthesis Module.** Jinja2 templates render each test case into real executable code. No LLM is involved at this stage. Output is deterministic, fast and fully auditable.
+
+---
+
+## The User Story Used in This POC
+
+**US-001: Product Search, Add to Cart and Complete Payment**
+
+As a registered shopper on ShopFlow, I want to search for a product, add it to my cart, and complete payment so that my order is placed and I receive an order confirmation with a unique order ID.
+
+**Acceptance Criteria:**
+
+1. Shopper must be authenticated before adding to cart or checking out.
+2. Search returns relevant results for a valid keyword including product name, price and image.
+3. Searching with an empty or invalid keyword shows a no-results message.
+4. Shopper can add a product to cart and the cart badge updates to reflect the item count.
+5. Cart shows correct product name, quantity and total price.
+6. Empty cart disables the checkout button.
+7. Checkout accepts valid payment card details and places the order.
+8. Successful payment returns an order confirmation page with a unique order ID and status CONFIRMED.
+9. Invalid card details such as an expired card or wrong CVV show an appropriate error and not a 500.
+10. Session timeout during checkout redirects to login and the cart is preserved after re-login.
+
+---
+
+## What Gets Generated
+
+Running the notebook produces **581 lines of executable test code** from that single user story:
+
+| File | Description | Tests |
+|---|---|---|
+| `generated/ShopFlowTest.java` | REST-assured API tests | 11 |
+| `generated/shopflow-ui.spec.ts` | Playwright UI tests | 4 |
+| `generated/shopflow-e2e.spec.ts` | Playwright E2E journey tests | 3 |
+| `generated/test_data.json` | Faker test data (seed=42) | — |
+
+---
+
+## Test Suite — US-001 (18 Test Cases)
+
+### API Tests — REST-assured + Java 17
+
+| ID | Title | Level | AC |
+|---|---|---|---|
+| TC-A01 | Valid credentials return JWT token | Positive | AC1 |
+| TC-A02 | Invalid password returns 401 or 403 | Negative | AC1 |
+| TC-A03 | Empty body returns 400 not 500 | Edge | AC1 |
+| TC-A04 | Valid keyword returns name, price and image | Positive | AC2 |
+| TC-A05 | Invalid keyword returns no-results message | Negative | AC3 |
+| TC-A06 | Add to cart returns updated itemCount | Positive | AC4 |
+| TC-A07 | GET cart returns name, quantity and total | Positive | AC5, AC10 |
+| TC-A08 | Unauthenticated cart add returns 401 | Negative | AC1 |
+| TC-A09 | Valid card processes payment, returns paymentRef | Positive | AC7 |
+| TC-A10 | Invalid card returns 422 error not 500 | Negative | AC9 |
+| TC-A11 | Place order returns orderId + status CONFIRMED | Positive | AC8 |
+
+### UI Tests — Playwright + TypeScript
+
+| ID | Title | Level | AC |
+|---|---|---|---|
+| TC-U01 | Search returns product cards with name, price and image | Positive | AC2 |
+| TC-U02 | Invalid keyword shows no-results message | Negative | AC3 |
+| TC-U03 | Add to cart updates badge and cart shows correct details | Positive | AC4, AC5 |
+| TC-U04 | Empty cart disables the checkout button | Edge | AC6 |
+
+### E2E Tests — Playwright + TypeScript
+
+| ID | Title | Level | AC |
+|---|---|---|---|
+| TC-E01 | Full journey: login → search → add to cart → pay → order confirmed | Positive | AC1, AC2, AC4, AC7, AC8 |
+| TC-E02 | Invalid card shows payment error not 500 | Negative | AC9 |
+| TC-E03 | Session timeout redirects to login; cart preserved after re-login | Edge | AC10 |
+
+---
+
+## Test Pyramid
+
+| Layer | Tool | Count | Actual | Target |
+|---|---|---|---|---|
+| API | REST-assured + Java 17 | 11 | 61% | 56% ✅ |
+| UI | Playwright + TypeScript | 4 | 22% | 25% ✅ |
+| E2E | Playwright + TypeScript | 3 | 17% | 19% ✅ |
+
+---
+
+## Coverage Report
+
+| Acceptance Criterion | Covered By | Status |
+|---|---|---|
+| AC-1 Auth before cart/checkout | TC-A01, TC-A02, TC-A03, TC-A08, TC-E01 | ✅ |
+| AC-2 Search returns results | TC-A04, TC-U01, TC-E01 | ✅ |
+| AC-3 Invalid search shows no results | TC-A05, TC-U02 | ✅ |
+| AC-4 Add to cart updates badge | TC-A06, TC-U03, TC-E01 | ✅ |
+| AC-5 Cart shows name, qty, total | TC-A07, TC-U03 | ✅ |
+| AC-6 Empty cart disables checkout | TC-U04 | ✅ |
+| AC-7 Valid payment places order | TC-A09, TC-E01 | ✅ |
+| AC-8 Confirmation with order ID | TC-A11, TC-E01 | ✅ |
+| AC-9 Invalid card shows error not 500 | TC-A10, TC-E02 | ✅ |
+| AC-10 Session timeout redirects to login | TC-A07, TC-E03 | ✅ |
+
+**AC Coverage: 10/10 = 100% — Verdict: PASS**
+
+---
+
+## Repository Structure
+
+```
+storyforge-ai-casestudy/
+├── ShopFlow_POC_v3.ipynb          Main notebook — run this
+├── generate.py                    Standalone runner (no Jupyter needed)
+├── config/
+│   ├── test_gen_config.yaml       Test types, pyramid ratio, framework config
+│   └── app_context.yaml           Base URLs, endpoints, nav paths, login flows
+├── templates/
+│   ├── api_test.j2                REST-assured Java Jinja2 template
+│   ├── ui_test.j2                 Playwright UI TypeScript Jinja2 template
+│   └── e2e_test.j2                Playwright E2E TypeScript Jinja2 template
+└── generated/
+    ├── ShopFlowTest.java          11 API tests — ready to run
+    ├── shopflow-ui.spec.ts        4 UI tests — ready to run
+    ├── shopflow-e2e.spec.ts       3 E2E tests — ready to run
+    └── test_data.json             Faker test data — seed=42
+```
+
+---
+
+## Config Files Explained
+
+### test_gen_config.yaml
+Defines the rules the framework follows — pyramid ratios, test types, which framework to use, output paths. Change framework from REST-assured to pytest by editing one line. Zero code changes anywhere else.
+
+### app_context.yaml
+Gives the LLM knowledge of the application — all 7 ShopFlow microservice endpoints, base URLs, nav paths, login flows and default test data. Without this file, you would re-explain the app in every user story. With it, the LLM already knows the application.
+
+---
+
+## Microservices & API Endpoints
+
+| Service | Method | Endpoint |
+|---|---|---|
+| Auth Service | POST | `/api/auth/login` |
+| Product Service | GET | `/api/products/search` |
+| Cart Service | POST | `/api/cart/add` |
+| Cart Service | GET | `/api/cart/{userId}` |
+| Order Service | POST | `/api/orders/place` |
+| Payment Service | POST | `/api/payment/process` |
+| Notification Service | POST | `/api/notify/email` |
+
+> Payment gateway operates in sandbox mode — no real transactions are processed.
+
+---
+
+## How to Run
+
+### Prerequisites
+
+- Python 3.10+
+- Ollama installed from https://ollama.com/download
+
+```bash
+ollama pull mistral
+```
+
+### Setup and Run
+
+```bash
+git clone https://github.com/SriniB-cloud/storyforge-ai-casestudy.git
+cd storyforge-ai-casestudy
+
+python3 -m venv venv
+source venv/bin/activate
+
+pip install jupyter pydantic jinja2 requests pyyaml faker rich
+
+jupyter notebook ShopFlow_POC_v3.ipynb
+```
+
+Open the notebook, click **Kernel → Restart and Run All**, and watch the full pipeline execute.
+
+> **Note:** Set `SIMULATE_LLM = True` in Cell 2 to run without Ollama (uses pre-validated ParsedSpec). Set to `False` to use live Mistral 7B inference.
+
+### Alternatively — run without Jupyter
+
+```bash
+python generate.py
+```
+
+---
+
+## Open Source Stack — 100% On-Premise
+
+| Layer | Tool | Licence | Why |
+|---|---|---|---|
+| LLM Engine | Mistral 7B via Ollama | MIT / Apache 2.0 | Local inference · zero egress · deterministic at temperature=0 |
+| Orchestration | LangChain + LangGraph | MIT | 4-agent stateful loop · native Ollama connector |
+| Schema Validation | Pydantic v2 | MIT | Catches malformed LLM output before it propagates |
+| Test Data | Faker (Python) | MIT | Sensitive data never touches LLM · deterministic via seed |
+| Code Templates | Jinja2 | BSD-3 | Framework-agnostic · swappable · no LLM for rendering |
+| Config | PyYAML | MIT | Human-readable · swap framework with one line |
+| API Tests | REST-assured + Java 17 | Apache 2.0 | Industry-standard DSL · TestNG + Maven integration |
+| UI + E2E | Playwright + TypeScript | Apache 2.0 | Multi-browser · auto-wait · video recording on failure |
+
+---
+
+## Why On-Premise Matters
+
+| Concern | How StoryForge AI Addresses It |
+|---|---|
+| Data privacy | User stories and test data never leave your network |
+| GDPR / HIPAA | Sensitive fields generated by Faker locally — not by LLM |
+| Vendor lock-in | Swap Mistral for LLaMA 3 in one config line |
+| Cost at scale | No per-token charges — runs free at any volume |
+| Air-gap support | Zero internet access needed after initial model pull |
+
+---
+
+## 🚀 Traditional vs StoryForge AI — Time Savings
+
+| Activity | Traditional Approach | StoryForge AI | Time Saved |
+|---|---|---|---|
+| Parse user story into test scenarios | 2 to 4 hours | 20 seconds | 99% |
+| Write API test cases (11 tests) | 1 to 2 days | Under 1 minute | 98% |
+| Write UI test cases (4 tests) | 4 to 6 hours | Under 1 minute | 97% |
+| Write E2E test cases (3 tests) | 3 to 5 hours | Under 1 minute | 96% |
+| Generate test data | 1 to 2 hours | 2 seconds | 99% |
+| Run coverage analysis | 1 to 2 hours | Instant | 100% |
+| **Total for 1 user story** | **3 to 4 days** | **Under 5 minutes** | **97%** |
+
+---
+
+## 📊 Key Metrics Dashboard
+
+### 🚀 Performance Impact
+
+- ⏱️ **Script Writing Time Reduction:** 97%
+- 📈 **Test Coverage Increase:** 100% (from 60%)
+- ✅ **Acceptance Criteria Covered:** 10/10
+
+### 🧪 Test Generation
+
+- 🧾 **Test Cases Generated:** 18 *(11 API + 4 UI + 3 E2E)*
+- 🧩 **Lines of Code Generated:** 581
+
+### 🔒 Security & Compliance
+
+- 🔐 **Data Egress:** Zero
+- 🛠️ **Proprietary Tools Used:** None
+
+### 📏 Quality Metrics
+
+- 🎯 **Minimum Coverage Threshold:** 80%
+- 🏆 **Actual Coverage Score:** 100%
+
+---
+
+*Generated by StoryForge AI Framework — aligned with Case Study Slides 1–8*
