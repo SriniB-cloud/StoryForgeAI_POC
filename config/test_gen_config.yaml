@@ -1,0 +1,71 @@
+# ─────────────────────────────────────────────────────────────
+# StoryForge AI — Test Generation Config
+# Project : ShopFlow POC v3
+# Aligned  : Case Study Slides 3–7
+# ─────────────────────────────────────────────────────────────
+
+project:
+  name: ShopFlow
+  version: v3
+  description: E-Commerce Online Shopping Cart — US-001
+
+# ── Test Pyramid ──────────────────────────────────────────────
+pyramid:
+  api:
+    target_pct: 56
+    count: 9
+    framework: rest-assured
+    language: java
+    output: generated/ShopFlowTest.java
+
+  ui:
+    target_pct: 25
+    count: 4
+    framework: playwright
+    language: typescript
+    output: generated/shopflow-ui.spec.ts
+
+  e2e:
+    target_pct: 19
+    count: 3
+    framework: playwright
+    language: typescript
+    output: generated/shopflow-e2e.spec.ts
+
+# ── Test Levels ───────────────────────────────────────────────
+levels:
+  - positive
+  - negative
+  - edge
+
+# ── Test Types ────────────────────────────────────────────────
+test_types:
+  api:
+    description: REST API contract tests via REST-assured + Java 17
+    tags: [api, contract, regression]
+  ui:
+    description: Browser UI interaction tests via Playwright + TypeScript
+    tags: [ui, smoke, regression]
+  e2e:
+    description: Full end-to-end journey tests via Playwright + TypeScript
+    tags: [e2e, journey, regression]
+
+# ── Coverage Threshold ────────────────────────────────────────
+coverage:
+  minimum_pct: 80
+  verdict_pass: PASS
+  verdict_fail: FAIL
+
+# ── LLM Config ───────────────────────────────────────────────
+llm:
+  provider: ollama
+  model: mistral
+  temperature: 0
+  base_url: http://localhost:11434
+
+# ── Test Data ────────────────────────────────────────────────
+test_data:
+  generator: faker
+  seed: 42
+  output: generated/test_data.json
+  sensitive_fields_via_llm: false   # PII never sent to LLM

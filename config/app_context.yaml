@@ -1,0 +1,152 @@
+# ─────────────────────────────────────────────────────────────
+# StoryForge AI — Application Context
+# Project : ShopFlow POC v3
+# Purpose : Gives the LLM app-specific knowledge so it is not
+#           re-specified in every user story
+# ─────────────────────────────────────────────────────────────
+
+application:
+  name: ShopFlow
+  description: Hypothetical multi-service e-commerce platform
+  domain: E-Commerce & Retail
+  base_url: https://api.shopflow.io
+  frontend_url: https://shopflow.io
+
+# ── Microservices & API Endpoints ────────────────────────────
+services:
+  auth:
+    name: Auth Service
+    base_path: /api/auth
+    endpoints:
+      login:
+        method: POST
+        path: /api/auth/login
+        body: { username: string, password: string }
+        response_200: { token: string }
+        response_401: { error: "Invalid credentials" }
+        response_400: { error: "Bad request" }
+
+  product:
+    name: Product Service
+    base_path: /api/products
+    endpoints:
+      search:
+        method: GET
+        path: /api/products/search
+        params: { q: string }
+        response_200: [ { id, name, price, image, category } ]
+        response_200_empty: { results: [], message: "No results found" }
+
+  cart:
+    name: Cart Service
+    base_path: /api/cart
+    endpoints:
+      add:
+        method: POST
+        path: /api/cart/add
+        headers: { Authorization: "Bearer {token}" }
+        body: { productId: int, quantity: int }
+        response_200: { cartId: string, itemCount: int, total: float }
+        response_401: { error: "Unauthorised" }
+      get:
+        method: GET
+        path: /api/cart/{userId}
+        headers: { Authorization: "Bearer {token}" }
+        response_200: { cartId, items: [ { name, qty, price } ], total: float }
+        response_200_empty: { cartId, items: [], total: 0.0 }
+
+  order:
+    name: Order Service
+    base_path: /api/orders
+    endpoints:
+      place:
+        method: POST
+        path: /api/orders/place
+        headers: { Authorization: "Bearer {token}" }
+        body: { cartId: string, paymentRef: string }
+        response_200: { orderId: string, status: "CONFIRMED" }
+        response_400: { error: "Empty cart" }
+
+  payment:
+    name: Payment Service
+    base_path: /api/payment
+    endpoints:
+      process:
+        method: POST
+        path: /api/payment/process
+        headers: { Authorization: "Bearer {token}" }
+        body: { cardNumber: string, expiry: string, cvv: string, amount: float }
+        response_200: { paymentRef: string, status: "SUCCESS" }
+        response_422: { error: "Invalid card details" }
+        response_422_expired: { error: "Card expired" }
+        note: Sandbox mode — no real transactions processed
+
+  notification:
+    name: Notification Service
+    base_path: /api/notify
+    endpoints:
+      email:
+        method: POST
+        path: /api/notify/email
+        body: { to: string, orderId: string, status: string }
+        response_200: { sent: true }
+
+# ── Navigation Paths (UI/E2E) ────────────────────────────────
+nav:
+  login_page: /login
+  search_page: /search
+  cart_page: /cart
+  checkout_page: /checkout
+  confirmation_page: /order/confirmation
+
+# ── Common Precondition Flows ────────────────────────────────
+flows:
+  authenticated_user:
+    description: User is logged in with valid credentials
+    steps:
+      - Navigate to /login
+      - Enter valid username and password
+      - Submit login form
+      - Assert JWT token received and stored
+      - Assert redirect to home page
+
+  empty_cart:
+    description: User has an empty cart
+    steps:
+      - authenticated_user (USE_COMMON_FLOW)
+      - Navigate to /cart
+      - Assert cart items list is empty
+      - Assert total is 0.00
+      - Assert checkout button is disabled
+
+  product_in_cart:
+    description: User has added one product to cart
+    steps:
+      - authenticated_user (USE_COMMON_FLOW)
+      - Navigate to /search
+      - Search for "laptop"
+      - Click Add to Cart on first result
+      - Assert cart badge updates to 1
+
+# ── Default Test Data References ────────────────────────────
+defaults:
+  valid_user:
+    username: shopper_test
+    password: Test@1234
+  valid_card:
+    number: "4111111111111111"
+    expiry: "12/28"
+    cvv: "123"
+  invalid_card:
+    number: "0000000000000000"
+    expiry: "01/20"
+    cvv: "000"
+  search_keyword_valid: laptop
+  search_keyword_empty: ""
+  search_keyword_invalid: "xyzzy_no_match_999"
+
+# ── Step Library ─────────────────────────────────────────────
+step_library:
+  USE_COMMON_FLOW:authenticated_user: flows.authenticated_user
+  USE_COMMON_FLOW:empty_cart: flows.empty_cart
+  USE_COMMON_FLOW:product_in_cart: flows.product_in_cart
