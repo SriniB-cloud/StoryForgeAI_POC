@@ -1,6 +1,6 @@
 # ─────────────────────────────────────────────────────────────
 # StoryForge AI — Application Context
-# Project : ShopFlow POC v3
+# Project : ShopFlow POC
 # Purpose : Gives the LLM app-specific knowledge so it is not
 #           re-specified in every user story
 # ─────────────────────────────────────────────────────────────
