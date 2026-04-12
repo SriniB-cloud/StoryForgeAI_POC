@@ -53,18 +53,18 @@ As a registered shopper on ShopFlow, I want to search for a product, add it to m
 
 ## What Gets Generated
 
-Running the notebook produces **581 lines of executable test code** from that single user story:
+Running the notebook produces **639 lines of executable test code** from that single user story:
 
 | File | Description | Tests |
 |---|---|---|
-| `generated/ShopFlowTest.java` | REST-assured API tests | 11 |
-| `generated/shopflow-ui.spec.ts` | Playwright UI tests | 4 |
-| `generated/shopflow-e2e.spec.ts` | Playwright E2E journey tests | 3 |
+| `generated/ShopFlowTest.java` | REST-assured API tests | 15 |
+| `generated/shopflow-ui.spec.ts` | Playwright UI tests | 5 |
+| `generated/shopflow-e2e.spec.ts` | Playwright E2E journey tests | 4 |
 | `generated/test_data.json` | Faker test data (seed=42) | — |
 
 ---
 
-## Test Suite — US-001 (18 Test Cases)
+## Test Suite — US-001 (24 Test Cases)
 
 ### API Tests — REST-assured + Java 17
 
@@ -73,23 +73,28 @@ Running the notebook produces **581 lines of executable test code** from that si
 | TC-A01 | Valid credentials return JWT token | Positive | AC1 |
 | TC-A02 | Invalid password returns 401 or 403 | Negative | AC1 |
 | TC-A03 | Empty body returns 400 not 500 | Edge | AC1 |
+| TC-A15 | Tampered JWT token returns 401 | Edge | AC1 |
 | TC-A04 | Valid keyword returns name, price and image | Positive | AC2 |
 | TC-A05 | Invalid keyword returns no-results message | Negative | AC3 |
+| TC-A12 | Special characters in keyword returns safe response | Edge | AC3 |
 | TC-A06 | Add to cart returns updated itemCount | Positive | AC4 |
 | TC-A07 | GET cart returns name, quantity and total | Positive | AC5, AC10 |
 | TC-A08 | Unauthenticated cart add returns 401 | Negative | AC1 |
-| TC-A09 | Valid card processes payment, returns paymentRef | Positive | AC7 |
+| TC-A13 | Adding same product twice updates quantity not duplicate | Edge | AC4, AC5 |
+| TC-A09 | Valid card processes payment and returns paymentRef | Positive | AC7 |
 | TC-A10 | Invalid card returns 422 error not 500 | Negative | AC9 |
-| TC-A11 | Place order returns orderId + status CONFIRMED | Positive | AC8 |
+| TC-A14 | Payment gateway timeout returns error not 500 | Edge | AC9 |
+| TC-A11 | Place order returns unique orderId and status CONFIRMED | Positive | AC8 |
 
 ### UI Tests — Playwright + TypeScript
 
 | ID | Title | Level | AC |
 |---|---|---|---|
 | TC-U01 | Search returns product cards with name, price and image | Positive | AC2 |
-| TC-U02 | Invalid keyword shows no-results message | Negative | AC3 |
+| TC-U02 | Invalid search keyword shows no-results message | Negative | AC3 |
 | TC-U03 | Add to cart updates badge and cart shows correct details | Positive | AC4, AC5 |
 | TC-U04 | Empty cart disables the checkout button | Edge | AC6 |
+| TC-U05 | Remove item from cart updates total correctly | Positive | AC5 |
 
 ### E2E Tests — Playwright + TypeScript
 
@@ -98,6 +103,7 @@ Running the notebook produces **581 lines of executable test code** from that si
 | TC-E01 | Full journey: login → search → add to cart → pay → order confirmed | Positive | AC1, AC2, AC4, AC7, AC8 |
 | TC-E02 | Invalid card shows payment error not 500 | Negative | AC9 |
 | TC-E03 | Session timeout redirects to login; cart preserved after re-login | Edge | AC10 |
+| TC-E04 | Order ID is unique across two consecutive orders | Edge | AC8 |
 
 ---
 
@@ -105,9 +111,9 @@ Running the notebook produces **581 lines of executable test code** from that si
 
 | Layer | Tool | Count | Actual | Target |
 |---|---|---|---|---|
-| API | REST-assured + Java 17 | 11 | 61% | 56% ✅ |
-| UI | Playwright + TypeScript | 4 | 22% | 25% ✅ |
-| E2E | Playwright + TypeScript | 3 | 17% | 19% ✅ |
+| API | REST-assured + Java 17 | 15 | 62% | ~56% ✅ |
+| UI | Playwright + TypeScript | 5 | 21% | ~25% ✅ |
+| E2E | Playwright + TypeScript | 4 | 17% | ~19% ✅ |
 
 ---
 
@@ -115,26 +121,43 @@ Running the notebook produces **581 lines of executable test code** from that si
 
 | Acceptance Criterion | Covered By | Status |
 |---|---|---|
-| AC-1 Auth before cart/checkout | TC-A01, TC-A02, TC-A03, TC-A08, TC-E01 | ✅ |
+| AC-1 Auth before cart/checkout | TC-A01, TC-A02, TC-A03, TC-A08, TC-A15, TC-E01 | ✅ |
 | AC-2 Search returns results | TC-A04, TC-U01, TC-E01 | ✅ |
-| AC-3 Invalid search shows no results | TC-A05, TC-U02 | ✅ |
-| AC-4 Add to cart updates badge | TC-A06, TC-U03, TC-E01 | ✅ |
-| AC-5 Cart shows name, qty, total | TC-A07, TC-U03 | ✅ |
+| AC-3 Invalid search shows no results | TC-A05, TC-A12, TC-U02 | ✅ |
+| AC-4 Add to cart updates badge | TC-A06, TC-A13, TC-U03, TC-E01 | ✅ |
+| AC-5 Cart shows name, qty, total | TC-A07, TC-A13, TC-U03, TC-U05 | ✅ |
 | AC-6 Empty cart disables checkout | TC-U04 | ✅ |
 | AC-7 Valid payment places order | TC-A09, TC-E01 | ✅ |
-| AC-8 Confirmation with order ID | TC-A11, TC-E01 | ✅ |
-| AC-9 Invalid card shows error not 500 | TC-A10, TC-E02 | ✅ |
+| AC-8 Confirmation with order ID | TC-A11, TC-E01, TC-E04 | ✅ |
+| AC-9 Invalid card shows error not 500 | TC-A10, TC-A14, TC-E02 | ✅ |
 | AC-10 Session timeout redirects to login | TC-A07, TC-E03 | ✅ |
 
 **AC Coverage: 10/10 = 100% — Verdict: PASS**
 
 ---
 
+## Coverage Gap Analysis
+
+| Gap Area | Action | TC Added | Reason |
+|---|---|---|---|
+| Special character search | Added | TC-A12 | Directly traceable to AC3 |
+| Duplicate product in cart | Added | TC-A13 | Traceable to AC4 and AC5 |
+| Payment gateway timeout | Added | TC-A14 | Traceable to AC9 — no 500 rule |
+| Tampered JWT token | Added | TC-A15 | Traceable to AC1 — auth security |
+| Remove item from cart | Added | TC-U05 | Traceable to AC5 — cart total |
+| Order ID uniqueness | Added | TC-E04 | Traceable to AC8 |
+| Concurrent sessions | Out of scope | — | Needs separate auth user story |
+| Order history persistence | Out of scope | — | Needs separate order user story |
+| Payment retry handling | Out of scope | — | Needs separate payment user story |
+| Search partial/case match | Out of scope | — | Needs separate search user story |
+
+---
+
 ## Repository Structure
 
 ```
-storyforge-ai-casestudy/
-├── ShopFlow_POC_v3.ipynb          Main notebook — run this
+StoryForgeAI_POC/
+├── ShopFlow_POC.ipynb             Main notebook — run this
 ├── generate.py                    Standalone runner (no Jupyter needed)
 ├── config/
 │   ├── test_gen_config.yaml       Test types, pyramid ratio, framework config
@@ -144,9 +167,9 @@ storyforge-ai-casestudy/
 │   ├── ui_test.j2                 Playwright UI TypeScript Jinja2 template
 │   └── e2e_test.j2                Playwright E2E TypeScript Jinja2 template
 └── generated/
-    ├── ShopFlowTest.java          11 API tests — ready to run
-    ├── shopflow-ui.spec.ts        4 UI tests — ready to run
-    ├── shopflow-e2e.spec.ts       3 E2E tests — ready to run
+    ├── ShopFlowTest.java          15 API tests — ready to run
+    ├── shopflow-ui.spec.ts        5 UI tests — ready to run
+    ├── shopflow-e2e.spec.ts       4 E2E tests — ready to run
     └── test_data.json             Faker test data — seed=42
 ```
 
@@ -192,20 +215,20 @@ ollama pull mistral
 ### Setup and Run
 
 ```bash
-git clone https://github.com/SriniB-cloud/storyforge-ai-casestudy.git
-cd storyforge-ai-casestudy
+git clone https://github.com/SriniB-cloud/StoryForgeAI_POC.git
+cd StoryForgeAI_POC
 
 python3 -m venv venv
 source venv/bin/activate
 
 pip install jupyter pydantic jinja2 requests pyyaml faker rich
 
-jupyter notebook ShopFlow_POC_v3.ipynb
+jupyter notebook ShopFlow_POC.ipynb
 ```
 
 Open the notebook, click **Kernel → Restart and Run All**, and watch the full pipeline execute.
 
-> **Note:** Set `SIMULATE_LLM = True` in Cell 2 to run without Ollama (uses pre-validated ParsedSpec). Set to `False` to use live Mistral 7B inference.
+> **Note:** Set `SIMULATE_LLM = True` to run without Ollama. Set to `False` to use live Mistral 7B inference.
 
 ### Alternatively — run without Jupyter
 
@@ -247,9 +270,9 @@ python generate.py
 | Activity | Traditional Approach | StoryForge AI | Time Saved |
 |---|---|---|---|
 | Parse user story into test scenarios | 2 to 4 hours | 20 seconds | 99% |
-| Write API test cases (11 tests) | 1 to 2 days | Under 1 minute | 98% |
-| Write UI test cases (4 tests) | 4 to 6 hours | Under 1 minute | 97% |
-| Write E2E test cases (3 tests) | 3 to 5 hours | Under 1 minute | 96% |
+| Write API test cases (15 tests) | 1 to 2 days | Under 1 minute | 98% |
+| Write UI test cases (5 tests) | 4 to 6 hours | Under 1 minute | 97% |
+| Write E2E test cases (4 tests) | 3 to 5 hours | Under 1 minute | 96% |
 | Generate test data | 1 to 2 hours | 2 seconds | 99% |
 | Run coverage analysis | 1 to 2 hours | Instant | 100% |
 | **Total for 1 user story** | **3 to 4 days** | **Under 5 minutes** | **97%** |
@@ -266,8 +289,8 @@ python generate.py
 
 ### 🧪 Test Generation
 
-- 🧾 **Test Cases Generated:** 18 *(11 API + 4 UI + 3 E2E)*
-- 🧩 **Lines of Code Generated:** 581
+- 🧾 **Test Cases Generated:** 24 *(15 API + 5 UI + 4 E2E)*
+- 🧩 **Lines of Code Generated:** 639
 
 ### 🔒 Security & Compliance
 
