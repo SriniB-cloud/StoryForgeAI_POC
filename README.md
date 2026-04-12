@@ -1,16 +1,25 @@
 # StoryForge AI — Intelligent Test Automation Framework
-
-> *From a plain English user story to executable test scripts in minutes — fully open source, zero data egress, runs entirely on your infrastructure.*
+ 
+> *From a plain English user story to executable test scripts — 
+> fully open source, zero data egress, runs entirely on your infrastructure.*
 
 ---
 
 ## The Problem This Solves
 
-Traditional QA teams spend **40–60% of their time writing test scripts manually**. Every sprint, a new batch of user stories arrives. A QA engineer reads each one, thinks through positive, negative and edge cases, writes API tests, UI tests, E2E tests, generates test data, and checks coverage — all by hand. It is repetitive, slow, and inconsistent.
+Writing test scripts manually is slow, repetitive and does not scale.
 
-**StoryForge AI eliminates that bottleneck.**
+Every sprint, QA engineers read user stories, think through test scenarios,
+write API tests, UI tests and E2E tests, generate test data and check coverage
+— all by hand. When requirements change, scripts need to be rewritten. When volume
+increases, the team becomes the bottleneck.
 
-Give it one user story in plain English. It returns a complete executable test suite — API tests, UI tests, E2E journey tests, test data, and a coverage report — in under 5 minutes. No cloud API keys. No data leaving your network.
+**StoryForge AI solves this.**
+
+Give it one user story in plain English. In under 5 minutes it returns a
+complete, executable test suite — API tests, UI tests, E2E journey tests,
+test data and a coverage report. No cloud API keys. No data leaving your
+network. No manual effort.
 
 ---
 
