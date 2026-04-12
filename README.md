@@ -25,8 +25,6 @@ network. No manual effort.
 
 ## How It Works
 
-The framework runs five stages, driven entirely by a single user story.
-
 ## 🔄 End-to-End Flow
 
 
@@ -43,6 +41,8 @@ sequenceDiagram
     Generator->>User: Generate test scripts
 
 ```
+The framework runs five stages, driven entirely by a single user story.
+
 **Stage 1 — Parsing Engine.** Mistral 7B via Ollama reads the user story and extracts the actor, action, goal, constraints and all acceptance criteria. Output is a `ParsedSpec` JSON object validated by Pydantic v2. Malformed LLM responses are automatically rejected and retried.
 
 **Stage 2 — Test Case Generator (4-Agent Pipeline).** Four agents work in sequence:
