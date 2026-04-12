@@ -25,7 +25,7 @@ network. No manual effort.
 
 ## How It Works
 
-# 🔄 End-to-End Flow
+### 🔄 End-to-End Flow
 
 ```mermaid
 sequenceDiagram
