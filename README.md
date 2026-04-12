@@ -20,11 +20,15 @@ The framework runs five stages, driven entirely by a single user story.
 
 **Stage 1 — Parsing Engine.** Mistral 7B via Ollama reads the user story and extracts the actor, action, goal, constraints, and all acceptance criteria. Output is a `ParsedSpec` JSON object validated by a Pydantic schema. If the LLM returns anything malformed, Pydantic rejects it and triggers an automatic retry.
 
-**Stage 2 — Test Case Generator (4-Agent Pipeline).** A Planner agent reads `test_gen_config.yaml` and decides the pyramid split. A Generator agent creates test cases per acceptance criterion covering positive, negative and edge scenarios. A Critic agent checks for coverage gaps. A Refiner agent finalises and locks the TestSpec.
+**Stage 2 — Test Case Generator (4-Agent Pipeline).** Four agents work in sequence:
+- **Planner** — reads `test_gen_config.yaml`, decides pyramid split based on target ratios
+- **Generator** — creates test cases per AC covering positive, negative and edge scenarios
+- **Critic** — automatically identifies coverage gaps and flags missing scenarios
+- **Refiner** — finalises, deduplicates and locks the TestSpec
 
 **Stage 3 — Test Data Generator.** Faker generates realistic deterministic test data using `seed=42`. The same data is produced on every CI run. Sensitive fields such as passwords and card numbers are generated locally and never sent to the LLM.
 
-**Stage 4 — Coverage Report.** Every test case is mapped back to every acceptance criterion. Pyramid compliance is checked against targets in `test_gen_config.yaml`. A PASS or FAIL verdict is produced against an 80 percent minimum threshold.
+**Stage 4 — Coverage Report.** Every test case is mapped back to every acceptance criterion. Pyramid compliance is checked against target ratios in `test_gen_config.yaml`. A PASS or FAIL verdict is produced against an 80 percent minimum threshold.
 
 **Stage 5 — Code Synthesis Module.** Jinja2 templates render each test case into real executable code. No LLM is involved at this stage. Output is deterministic, fast and fully auditable.
 
@@ -115,6 +119,8 @@ Running the notebook produces **639 lines of executable test code** from that si
 | UI | Playwright + TypeScript | 5 | 21% | ~25% ✅ |
 | E2E | Playwright + TypeScript | 4 | 17% | ~19% ✅ |
 
+> Pyramid ratios are configured in `test_gen_config.yaml`. The Critic agent may generate additional test cases beyond the target ratio when coverage gaps are identified — this is expected behaviour.
+
 ---
 
 ## Coverage Report
@@ -138,6 +144,8 @@ Running the notebook produces **639 lines of executable test code** from that si
 
 ## Coverage Gap Analysis
 
+The Critic agent automatically identifies gaps and flags them as Added or Out of Scope:
+
 | Gap Area | Action | TC Added | Reason |
 |---|---|---|---|
 | Special character search | Added | TC-A12 | Directly traceable to AC3 |
@@ -153,15 +161,30 @@ Running the notebook produces **639 lines of executable test code** from that si
 
 ---
 
+## Scalability — Batch Runner
+
+The framework processes multiple user stories in sequence. Each story runs independently through the full 5-stage pipeline with output organised per story.
+
+| Story | Title | ACs | API | UI | E2E | Total | Coverage | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| US-001 | Product Search, Add to Cart and Payment | 10 | 15 | 5 | 4 | 24 | 100% | PASS |
+| US-002 | User Registration | 6 | 7 | 3 | 2 | 12 | 100% | PASS |
+| US-003 | Product Review & Rating | 5 | 5 | 3 | 2 | 10 | 100% | PASS |
+| **Total** | | | | | | **46** | **100%** | **PASS** |
+
+> In production the batch runner reads from Jira API or a stories folder and writes output to `/generated/{story_id}/`.
+
+---
+
 ## Repository Structure
 
 ```
 StoryForgeAI_POC/
-├── ShopFlow_POC.ipynb             Main notebook — run this
+├── ShopFlow_POC.ipynb             Main notebook — 8 steps, run this
 ├── generate.py                    Standalone runner (no Jupyter needed)
 ├── config/
-│   ├── test_gen_config.yaml       Test types, pyramid ratio, framework config
-│   └── app_context.yaml           Base URLs, endpoints, nav paths, login flows
+│   ├── test_gen_config.yaml       Pyramid ratios, test levels, framework, LLM config
+│   └── app_context.yaml           ShopFlow endpoints, nav paths, login flows
 ├── templates/
 │   ├── api_test.j2                REST-assured Java Jinja2 template
 │   ├── ui_test.j2                 Playwright UI TypeScript Jinja2 template
@@ -178,10 +201,12 @@ StoryForgeAI_POC/
 ## Config Files Explained
 
 ### test_gen_config.yaml
-Defines the rules the framework follows — pyramid ratios, test types, which framework to use, output paths. Change framework from REST-assured to pytest by editing one line. Zero code changes anywhere else.
+
+Defines the rules the framework follows — pyramid target ratios (not hardcoded counts), test levels, which framework to use, LLM settings and coverage threshold. The Planner agent reads this file to decide the pyramid split. Changing framework from REST-assured to pytest requires editing one line. Zero code changes anywhere else.
 
 ### app_context.yaml
-Gives the LLM knowledge of the application — all 7 ShopFlow microservice endpoints, base URLs, nav paths, login flows and default test data. Without this file, you would re-explain the app in every user story. With it, the LLM already knows the application.
+
+Gives the LLM full knowledge of ShopFlow — all 7 microservice endpoints, base URLs, frontend nav paths, login flows and default test data. Without this file, you would re-explain the app in every user story. With it, the LLM already knows the application.
 
 ---
 
@@ -226,7 +251,7 @@ pip install jupyter pydantic jinja2 requests pyyaml faker rich
 jupyter notebook ShopFlow_POC.ipynb
 ```
 
-Open the notebook, click **Kernel → Restart and Run All**, and watch the full pipeline execute.
+Open the notebook and step through each cell. Each stage has a description and rich output.
 
 > **Note:** Set `SIMULATE_LLM = True` to run without Ollama. Set to `False` to use live Mistral 7B inference.
 
@@ -247,7 +272,7 @@ python generate.py
 | Schema Validation | Pydantic v2 | MIT | Catches malformed LLM output before it propagates |
 | Test Data | Faker (Python) | MIT | Sensitive data never touches LLM · deterministic via seed |
 | Code Templates | Jinja2 | BSD-3 | Framework-agnostic · swappable · no LLM for rendering |
-| Config | PyYAML | MIT | Human-readable · swap framework with one line |
+| Config | PyYAML | MIT | Human-readable · swap framework with one line · no hardcoded counts |
 | API Tests | REST-assured + Java 17 | Apache 2.0 | Industry-standard DSL · TestNG + Maven integration |
 | UI + E2E | Playwright + TypeScript | Apache 2.0 | Multi-browser · auto-wait · video recording on failure |
 
@@ -291,16 +316,19 @@ python generate.py
 
 - 🧾 **Test Cases Generated:** 24 *(15 API + 5 UI + 4 E2E)*
 - 🧩 **Lines of Code Generated:** 639
+- 📦 **Batch Runner:** 3 stories · 46 total test cases
 
 ### 🔒 Security & Compliance
 
 - 🔐 **Data Egress:** Zero
 - 🛠️ **Proprietary Tools Used:** None
+- 🔑 **PII sent to LLM:** None — generated locally by Faker
 
 ### 📏 Quality Metrics
 
 - 🎯 **Minimum Coverage Threshold:** 80%
 - 🏆 **Actual Coverage Score:** 100%
+- 🔍 **Coverage Gaps Identified:** 6 added · 4 out of scope
 
 ---
 
