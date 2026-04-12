@@ -29,19 +29,20 @@ The framework runs five stages, driven entirely by a single user story.
 
 ## 🔄 End-to-End Flow
 
+
 ```mermaid
 sequenceDiagram
     participant User
-    participant LLM
-    participant Validator
-    participant Generator
+    participant LLM as LLM (Mistral via Ollama)
+    participant Validator as Schema Validator (Pydantic)
+    participant Generator as Script Generator (Jinja2)
 
-    User->>LLM: Input User Story
-    LLM->>Validator: Generate JSON Test Cases
+    User->>LLM: Provide user story
+    LLM->>Validator: Generate structured JSON
     Validator->>Generator: Validate schema
-    Generator->>User: Generate automation scripts
+    Generator->>User: Generate test scripts
 
-
+```
 **Stage 1 — Parsing Engine.** Mistral 7B via Ollama reads the user story and extracts the actor, action, goal, constraints and all acceptance criteria. Output is a `ParsedSpec` JSON object validated by Pydantic v2. Malformed LLM responses are automatically rejected and retried.
 
 **Stage 2 — Test Case Generator (4-Agent Pipeline).** Four agents work in sequence:
