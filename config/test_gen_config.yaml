@@ -1,8 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # StoryForge AI — Test Generation Config
-# Project : ShopFlow POC v3
-# Aligned  : Case Study Slides 3–7
-# ─────────────────────────────────────────────────────────────
+# Project : ShopFlow POC
+ # ─────────────────────────────────────────────────────────────
 
 project:
   name: ShopFlow
@@ -13,21 +12,18 @@ project:
 pyramid:
   api:
     target_pct: 56
-    count: 9
     framework: rest-assured
     language: java
     output: generated/ShopFlowTest.java
 
   ui:
     target_pct: 25
-    count: 4
     framework: playwright
     language: typescript
     output: generated/shopflow-ui.spec.ts
 
   e2e:
     target_pct: 19
-    count: 3
     framework: playwright
     language: typescript
     output: generated/shopflow-e2e.spec.ts
