@@ -5,6 +5,7 @@
   "user_id": "9a1de644",
   "search_keyword": "laptop",
   "invalid_keyword": "xyzzy_no_match_999",
+  "special_keyword": "@@##laptop!!",
   "card_number": "4111111111111111",
   "card_expiry": "12/28",
   "card_cvv": "123",
