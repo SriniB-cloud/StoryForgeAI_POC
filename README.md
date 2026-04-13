@@ -18,52 +18,22 @@ Give it one user story in plain English. In under 5 minutes it returns a complet
 
 ## How It Works
 
-The framework runs five stages, driven entirely by a single user story.
+
+### 🔄 End-to-End Flow
 
 ```mermaid
-flowchart TD
-    A([Plain English User Story]) --> B
+sequenceDiagram
+    participant User
+    participant LLM
+    participant Validator
+    participant Generator
 
-    B["Stage 1 — Parsing Engine
-    Mistral 7B · LangChain · Pydantic v2
-    Extracts actor · actions · AC · rules"]
-
-    B -->|structured JSON| C
-
-    C["Stage 2 — Test Case Generator
-    4-Agent Pipeline · LangChain
-    Planner → Generator → Critic → Refiner"]
-
-    C -->|test case JSON| D
-
-    D["Stage 3 — Test Data Generator
-    Faker seed=42 · zero PII to LLM
-    Deterministic · reproducible"]
-
-    D -->|test cases + data| E
-
-    E["Stage 4 — Coverage Report
-    AC mapping · pyramid compliance
-    PASS / FAIL verdict"]
-
-    E -->|verified test spec| F
-
-    F["Stage 5 — Code Synthesis
-    Jinja2 templates · no LLM
-    Deterministic · auditable"]
-
-    F --> G([Executable Test Scripts
-    REST-assured · Playwright · Faker])
-
-    style A fill:#0C1A2E,color:#5DCAA5
-    style G fill:#0C1A2E,color:#5DCAA5
-    style B fill:#EEEDFE,color:#26215C
-    style C fill:#EEEDFE,color:#26215C
-    style D fill:#E1F5EE,color:#085041
-    style E fill:#E1F5EE,color:#085041
-    style F fill:#FAECE7,color:#712B13
+    User->>LLM: Provide user story
+    LLM->>Validator: Generate structured JSON
+    Validator->>Generator: Validate schema
+    Generator->>User: Generate test scripts
 ```
-
+The framework runs five stages, driven entirely by a single user story.
 **Stage 1 — Parsing Engine.** Mistral 7B via Ollama reads the user story and extracts the actor, action, goal, constraints and all acceptance criteria. Output is a `ParsedSpec` JSON object validated by Pydantic v2. Malformed LLM responses are automatically rejected and retried.
 
 **Stage 2 — Test Case Generator (4-Agent Pipeline).** Four agents work in sequence:
