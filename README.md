@@ -1,7 +1,6 @@
 # StoryForge AI — Intelligent Test Automation Framework
- 
-> *From a plain English user story to executable test scripts — 
-> fully open source, zero data egress, runs entirely on your infrastructure.*
+
+> *From a plain English user story to executable test scripts — fully open source, zero data egress, runs entirely on your infrastructure.*
 
 ---
 
@@ -9,46 +8,69 @@
 
 Writing test scripts manually is slow, repetitive and does not scale.
 
-Every sprint, QA engineers read user stories, think through test scenarios,
-write API tests, UI tests and E2E tests, generate test data and check coverage
-— all by hand. When requirements change, scripts need to be rewritten. When volume
-increases, the team becomes the bottleneck.
+Every sprint, QA engineers read user stories, think through test scenarios, write API tests, UI tests and E2E tests, generate test data and check coverage — all by hand. When requirements change, scripts need rewriting. When volume increases, the team becomes the bottleneck.
 
 **StoryForge AI solves this.**
 
-Give it one user story in plain English. In under 5 minutes it returns a
-complete, executable test suite — API tests, UI tests, E2E journey tests,
-test data and a coverage report. No cloud API keys. No data leaving your
-network. No manual effort.
+Give it one user story in plain English. In under 5 minutes it returns a complete, executable test suite — API tests, UI tests, E2E journey tests, test data and a coverage report. No cloud API keys. No data leaving your network. No manual effort.
 
 ---
 
 ## How It Works
 
-### 🔄 End-to-End Flow
+The framework runs five stages, driven entirely by a single user story.
 
 ```mermaid
-sequenceDiagram
-    participant User
-    participant LLM as LLM (Mistral via Ollama)
-    participant Validator as Schema Validator (Pydantic)
-    participant Generator as Script Generator (Jinja2)
+flowchart TD
+    A([Plain English User Story]) --> B
 
-    User->>LLM: Provide user story
-    LLM->>Validator: Generate structured JSON
-    Validator->>Generator: Validate schema
-    Generator->>User: Generate test scripts
+    B["Stage 1 — Parsing Engine
+    Mistral 7B · LangChain · Pydantic v2
+    Extracts actor · actions · AC · rules"]
 
+    B -->|structured JSON| C
+
+    C["Stage 2 — Test Case Generator
+    4-Agent Pipeline · LangChain
+    Planner → Generator → Critic → Refiner"]
+
+    C -->|test case JSON| D
+
+    D["Stage 3 — Test Data Generator
+    Faker seed=42 · zero PII to LLM
+    Deterministic · reproducible"]
+
+    D -->|test cases + data| E
+
+    E["Stage 4 — Coverage Report
+    AC mapping · pyramid compliance
+    PASS / FAIL verdict"]
+
+    E -->|verified test spec| F
+
+    F["Stage 5 — Code Synthesis
+    Jinja2 templates · no LLM
+    Deterministic · auditable"]
+
+    F --> G([Executable Test Scripts
+    REST-assured · Playwright · Faker])
+
+    style A fill:#0C1A2E,color:#5DCAA5
+    style G fill:#0C1A2E,color:#5DCAA5
+    style B fill:#EEEDFE,color:#26215C
+    style C fill:#EEEDFE,color:#26215C
+    style D fill:#E1F5EE,color:#085041
+    style E fill:#E1F5EE,color:#085041
+    style F fill:#FAECE7,color:#712B13
 ```
-The framework runs five stages, driven entirely by a single user story.
 
 **Stage 1 — Parsing Engine.** Mistral 7B via Ollama reads the user story and extracts the actor, action, goal, constraints and all acceptance criteria. Output is a `ParsedSpec` JSON object validated by Pydantic v2. Malformed LLM responses are automatically rejected and retried.
 
 **Stage 2 — Test Case Generator (4-Agent Pipeline).** Four agents work in sequence:
 - **Planner** — reads `test_gen_config.yaml`, decides pyramid split based on target ratios
-- **Generator** — creates test cases per AC covering positive, negative and edge scenarios
-- **Critic** — automatically identifies coverage gaps and flags missing scenarios
-- **Refiner** — finalises, deduplicates and locks the TestSpec
+- **Generator** — calls Mistral to create test cases per AC covering positive, negative and edge scenarios
+- **Critic** — automatically identifies coverage gaps and flags missing ACs
+- **Refiner** — finalises, deduplicates and fills any remaining AC gaps
 
 **Stage 3 — Test Data Generator.** Faker generates deterministic test data using `seed=42`. The same data is produced on every CI run. Sensitive fields such as passwords and card numbers are generated locally — never sent to the LLM.
 
@@ -58,7 +80,7 @@ The framework runs five stages, driven entirely by a single user story.
 
 ---
 
-## Representative User Story (POC Demonstration)
+## The User Story Used in This POC
 
 **US-001: Product Search, Add to Cart and Complete Payment**
 
@@ -81,57 +103,46 @@ As a registered shopper on ShopFlow, I want to search for a product, add it to m
 
 ## What Gets Generated
 
-Running the notebook produces **639 lines of executable test code** from that single user story:
+Running the pipeline produces **390 lines of executable test code** from a single user story — generated live by Mistral 7B:
 
-| File | Description | Tests |
-|---|---|---|
-| `generated/ShopFlowTest.java` | REST-assured API tests | 15 |
-| `generated/shopflow-ui.spec.ts` | Playwright UI tests | 5 |
-| `generated/shopflow-e2e.spec.ts` | Playwright E2E journey tests | 4 |
-| `generated/test_data.json` | Faker test data (seed=42) | — |
+| File | Description | Tests | Lines |
+|---|---|---|---|
+| `generated/US-001/ShopFlowTest.java` | REST-assured API tests | 7 | 227 |
+| `generated/US-001/shopflow-ui.spec.ts` | Playwright UI tests | 2 | 63 |
+| `generated/US-001/shopflow-e2e.spec.ts` | Playwright E2E journey tests | 2 | 100 |
+| `generated/US-001/test_data.json` | Faker test data (seed=42) | — | — |
+
+> **Note:** Test case count varies per run — this is expected LLM behaviour. The Critic and Refiner agents guarantee 100% AC coverage regardless of how many cases Mistral generates.
 
 ---
 
-## Test Suite — US-001 (24 Test Cases)
+## Test Suite — US-001 (11 Test Cases — Live Mistral Output)
 
 ### API Tests — REST-assured + Java 17
 
 | ID | Title | Level | AC |
 |---|---|---|---|
-| TC-A01 | Valid credentials return JWT token | Positive | AC1 |
-| TC-A02 | Invalid password returns 401 or 403 | Negative | AC1 |
-| TC-A03 | Empty body returns 400 not 500 | Edge | AC1 |
-| TC-A15 | Tampered JWT token returns 401 | Edge | AC1 |
-| TC-A04 | Valid keyword returns name, price and image | Positive | AC2 |
-| TC-A05 | Invalid keyword returns no-results message | Negative | AC3 |
-| TC-A12 | Special characters in keyword returns safe response | Edge | AC3 |
-| TC-A06 | Add to cart returns updated itemCount | Positive | AC4 |
-| TC-A07 | GET cart returns name, quantity and total | Positive | AC5, AC10 |
-| TC-A08 | Unauthenticated cart add returns 401 | Negative | AC1 |
-| TC-A13 | Adding same product twice updates quantity not duplicate | Edge | AC4, AC5 |
-| TC-A09 | Valid card processes payment and returns paymentRef | Positive | AC7 |
-| TC-A10 | Invalid card returns 422 error not 500 | Negative | AC9 |
-| TC-A14 | Payment gateway timeout returns error not 500 | Edge | AC9 |
-| TC-A11 | Place order returns unique orderId and status CONFIRMED | Positive | AC8 |
+| TC-A01 | Verify successful authentication of a registered shopper | Positive | AC1 |
+| TC-A02 | Search for a product and receive relevant results | Positive | AC2 |
+| TC-A03 | Add a product to the cart and update the cart badge | Positive | AC4, AC5 |
+| TC-A04 | Complete payment with valid card details and receive order confirmation | Positive | AC7, AC8 |
+| TC-A05 | Attempt payment with invalid card details and receive an error | Negative | AC9 |
+| TC-A06 | Checkout session timeout redirects to login with cart preserved | Edge | AC10 |
+| TC-A90 | Verify empty cart disables the checkout button | Positive | AC6 |
 
 ### UI Tests — Playwright + TypeScript
 
 | ID | Title | Level | AC |
 |---|---|---|---|
-| TC-U01 | Search returns product cards with name, price and image | Positive | AC2 |
-| TC-U02 | Invalid search keyword shows no-results message | Negative | AC3 |
-| TC-U03 | Add to cart updates badge and cart shows correct details | Positive | AC4, AC5 |
-| TC-U04 | Empty cart disables the checkout button | Edge | AC6 |
-| TC-U05 | Remove item from cart updates total correctly | Positive | AC5 |
+| TC-U01 | Verify search returns relevant results for a valid keyword | Positive | AC2 |
+| TC-U02 | Verify no-results message when searching with empty or invalid keyword | Negative | AC3 |
 
 ### E2E Tests — Playwright + TypeScript
 
 | ID | Title | Level | AC |
 |---|---|---|---|
-| TC-E01 | Full journey: login → search → add to cart → pay → order confirmed | Positive | AC1, AC2, AC4, AC7, AC8 |
+| TC-E01 | Full journey: login → search → add to cart → pay → order confirmed | Positive | AC1, AC2, AC4, AC5, AC7, AC8 |
 | TC-E02 | Invalid card shows payment error not 500 | Negative | AC9 |
-| TC-E03 | Session timeout redirects to login; cart preserved after re-login | Edge | AC10 |
-| TC-E04 | Order ID is unique across two consecutive orders | Edge | AC8 |
 
 ---
 
@@ -139,11 +150,11 @@ Running the notebook produces **639 lines of executable test code** from that si
 
 | Layer | Tool | Count | Actual | Target |
 |---|---|---|---|---|
-| API | REST-assured + Java 17 | 15 | 62% | ~56% ✅ |
-| UI | Playwright + TypeScript | 5 | 21% | ~25% ✅ |
-| E2E | Playwright + TypeScript | 4 | 17% | ~19% ✅ |
+| API | REST-assured + Java 17 | 7 | 64% | ~56% ✅ |
+| UI | Playwright + TypeScript | 2 | 18% | ~25% ✅ |
+| E2E | Playwright + TypeScript | 2 | 18% | ~19% ✅ |
 
-> Pyramid ratios are configured in `test_gen_config.yaml`. The Critic agent may generate additional test cases beyond the target ratio when coverage gaps are identified — this is expected behaviour.
+> Pyramid ratios are configured in `test_gen_config.yaml` as target percentages — not hardcoded counts. The Critic agent validates coverage and the Refiner fills gaps, guaranteeing 100% AC coverage regardless of LLM output.
 
 ---
 
@@ -151,52 +162,18 @@ Running the notebook produces **639 lines of executable test code** from that si
 
 | Acceptance Criterion | Covered By | Status |
 |---|---|---|
-| AC-1 Auth before cart/checkout | TC-A01, TC-A02, TC-A03, TC-A08, TC-A15, TC-E01 | ✅ |
-| AC-2 Search returns results | TC-A04, TC-U01, TC-E01 | ✅ |
-| AC-3 Invalid search shows no results | TC-A05, TC-A12, TC-U02 | ✅ |
-| AC-4 Add to cart updates badge | TC-A06, TC-A13, TC-U03, TC-E01 | ✅ |
-| AC-5 Cart shows name, qty, total | TC-A07, TC-A13, TC-U03, TC-U05 | ✅ |
-| AC-6 Empty cart disables checkout | TC-U04 | ✅ |
-| AC-7 Valid payment places order | TC-A09, TC-E01 | ✅ |
-| AC-8 Confirmation with order ID | TC-A11, TC-E01, TC-E04 | ✅ |
-| AC-9 Invalid card shows error not 500 | TC-A10, TC-A14, TC-E02 | ✅ |
-| AC-10 Session timeout redirects to login | TC-A07, TC-E03 | ✅ |
+| AC-1 Auth before cart/checkout | TC-A01, TC-E01 | ✅ |
+| AC-2 Search returns results | TC-A02, TC-U01, TC-E01 | ✅ |
+| AC-3 Invalid search shows no results | TC-U02, TC-E02 | ✅ |
+| AC-4 Add to cart updates badge | TC-A03, TC-E01 | ✅ |
+| AC-5 Cart shows name, qty, total | TC-A03, TC-E01 | ✅ |
+| AC-6 Empty cart disables checkout | TC-A90 | ✅ |
+| AC-7 Valid payment places order | TC-A04, TC-E01 | ✅ |
+| AC-8 Confirmation with order ID | TC-A04, TC-E01 | ✅ |
+| AC-9 Invalid card shows error not 500 | TC-A05, TC-E02 | ✅ |
+| AC-10 Session timeout redirects to login | TC-A06 | ✅ |
 
 **AC Coverage: 10/10 = 100% — Verdict: PASS**
-
----
-
-## Coverage Gap Analysis
-
-The Critic agent automatically identifies gaps and flags them as Added or Out of Scope:
-
-| Gap Area | Action | TC Added | Reason |
-|---|---|---|---|
-| Special character search | Added | TC-A12 | Directly traceable to AC3 |
-| Duplicate product in cart | Added | TC-A13 | Traceable to AC4 and AC5 |
-| Payment gateway timeout | Added | TC-A14 | Traceable to AC9 — no 500 rule |
-| Tampered JWT token | Added | TC-A15 | Traceable to AC1 — auth security |
-| Remove item from cart | Added | TC-U05 | Traceable to AC5 — cart total |
-| Order ID uniqueness | Added | TC-E04 | Traceable to AC8 |
-| Concurrent sessions | Out of scope | — | Needs separate auth user story |
-| Order history persistence | Out of scope | — | Needs separate order user story |
-| Payment retry handling | Out of scope | — | Needs separate payment user story |
-| Search partial/case match | Out of scope | — | Needs separate search user story |
-
----
-
-## Scalability — Batch Runner
-
-The framework processes multiple user stories in sequence. Each story runs independently through the full 5-stage pipeline with output organised per story.
-
-| Story | Title | ACs | API | UI | E2E | Total | Coverage | Verdict |
-|---|---|---|---|---|---|---|---|---|
-| US-001 | Product Search, Add to Cart and Payment | 10 | 15 | 5 | 4 | 24 | 100% | PASS |
-| US-002 | User Registration | 6 | 7 | 3 | 2 | 12 | 100% | PASS |
-| US-003 | Product Review & Rating | 5 | 5 | 3 | 2 | 10 | 100% | PASS |
-| **Total** | | | | | | **46** | **100%** | **PASS** |
-
-> In production the batch runner reads from Jira API or a stories folder and writes output to `/generated/{story_id}/`.
 
 ---
 
@@ -205,7 +182,7 @@ The framework processes multiple user stories in sequence. Each story runs indep
 ```
 StoryForgeAI_POC/
 ├── ShopFlow_POC.ipynb             Main notebook — 8 steps, run this
-├── generate.py                    Standalone runner (no Jupyter needed)
+├── generate.py                    Standalone runner — reads from /stories/
 ├── config/
 │   ├── test_gen_config.yaml       Pyramid ratios, test levels, framework, LLM config
 │   └── app_context.yaml           ShopFlow endpoints, nav paths, login flows
@@ -213,11 +190,16 @@ StoryForgeAI_POC/
 │   ├── api_test.j2                REST-assured Java Jinja2 template
 │   ├── ui_test.j2                 Playwright UI TypeScript Jinja2 template
 │   └── e2e_test.j2                Playwright E2E TypeScript Jinja2 template
+├── stories/
+│   ├── US-001.txt                 Product Search, Add to Cart and Payment
+│   ├── US-002.txt                 User Registration
+│   └── US-003.txt                 Product Review and Rating
 └── generated/
-    ├── ShopFlowTest.java          15 API tests — ready to run
-    ├── shopflow-ui.spec.ts        5 UI tests — ready to run
-    ├── shopflow-e2e.spec.ts       4 E2E tests — ready to run
-    └── test_data.json             Faker test data — seed=42
+    └── US-001/                    Live Mistral output — ready to run
+        ├── ShopFlowTest.java      7 API tests
+        ├── shopflow-ui.spec.ts    2 UI tests
+        ├── shopflow-e2e.spec.ts   2 E2E tests
+        └── test_data.json         Faker test data — seed=42
 ```
 
 ---
@@ -225,11 +207,9 @@ StoryForgeAI_POC/
 ## Config Files Explained
 
 ### test_gen_config.yaml
-
 Defines the rules the framework follows — pyramid target ratios (not hardcoded counts), test levels, which framework to use, LLM settings and coverage threshold. The Planner agent reads this file to decide the pyramid split. Changing framework from REST-assured to pytest requires editing one line. Zero code changes anywhere else.
 
 ### app_context.yaml
-
 Gives the LLM full knowledge of ShopFlow — all 7 microservice endpoints, base URLs, frontend nav paths, login flows and default test data. Without this file, you would re-explain the app in every user story. With it, the LLM already knows the application.
 
 ---
@@ -270,20 +250,29 @@ cd StoryForgeAI_POC
 python3 -m venv venv
 source venv/bin/activate
 
-pip install jupyter pydantic jinja2 requests pyyaml faker rich
+pip install pydantic jinja2 pyyaml faker rich requests
 
-jupyter notebook ShopFlow_POC.ipynb
+# Process a single story
+python3 generate.py --story US-001
+
+# Process all stories
+python3 generate.py
 ```
 
-Open the notebook and step through each cell. Each stage has a description and rich output.
-
-> **Note:** Set `SIMULATE_LLM = True` to run without Ollama. Set to `False` to use live Mistral 7B inference.
-
-### Alternatively — run without Jupyter
+### To add a new user story — zero code changes needed
 
 ```bash
-python generate.py
+# 1. Write your story
+nano stories/US-004.txt
+
+# 2. Run the pipeline
+python3 generate.py --story US-004
+
+# 3. Find executable scripts
+ls generated/US-004/
 ```
+
+> **Note:** Set `SIMULATE_LLM = True` in `generate.py` to run without Ollama using pre-validated data for US-001.
 
 ---
 
@@ -319,12 +308,12 @@ python generate.py
 | Activity | Traditional Approach | StoryForge AI | Time Saved |
 |---|---|---|---|
 | Parse user story into test scenarios | 2 to 4 hours | 20 seconds | 99% |
-| Write API test cases (15 tests) | 1 to 2 days | Under 1 minute | 98% |
-| Write UI test cases (5 tests) | 4 to 6 hours | Under 1 minute | 97% |
-| Write E2E test cases (4 tests) | 3 to 5 hours | Under 1 minute | 96% |
+| Write API test cases (7 tests) | 1 to 2 days | Under 1 minute | 98% |
+| Write UI test cases (2 tests) | 2 to 3 hours | Under 1 minute | 97% |
+| Write E2E test cases (2 tests) | 2 to 3 hours | Under 1 minute | 96% |
 | Generate test data | 1 to 2 hours | 2 seconds | 99% |
 | Run coverage analysis | 1 to 2 hours | Instant | 100% |
-| **Total for 1 user story** | **3 to 4 days** | **Under 5 minutes** | **97%** |
+| **Total for 1 user story** | **2 to 3 days** | **Under 5 minutes** | **97%** |
 
 ---
 
@@ -333,14 +322,14 @@ python generate.py
 ### 🚀 Performance Impact
 
 - ⏱️ **Script Writing Time Reduction:** 97%
-- 📈 **Test Coverage Increase:** 100% (from 60%)
+- 📈 **Test Coverage:** 100% AC coverage
 - ✅ **Acceptance Criteria Covered:** 10/10
 
-### 🧪 Test Generation
+### 🧪 Test Generation (Live Mistral Output)
 
-- 🧾 **Test Cases Generated:** 24 *(15 API + 5 UI + 4 E2E)*
-- 🧩 **Lines of Code Generated:** 639
-- 📦 **Batch Runner:** 3 stories · 46 total test cases
+- 🧾 **Test Cases Generated:** 11 *(7 API + 2 UI + 2 E2E)*
+- 🧩 **Lines of Code Generated:** 390
+- 🤖 **LLM:** Mistral 7B via Ollama — fully on-premise
 
 ### 🔒 Security & Compliance
 
@@ -351,9 +340,9 @@ python generate.py
 ### 📏 Quality Metrics
 
 - 🎯 **Minimum Coverage Threshold:** 80%
-- 🏆 **Actual Coverage Score:** 100%
-- 🔍 **Coverage Gaps Identified:** 6 added · 4 out of scope
+- 🏆 **Actual Coverage Score:** 100% — Verdict: PASS
+- 🔍 **AC Coverage:** 10/10 guaranteed by Critic + Refiner agents
 
 ---
 
-
+*Generated by StoryForge AI Framework — Mistral 7B · Jinja2 · Faker · REST-assured · Playwright*
