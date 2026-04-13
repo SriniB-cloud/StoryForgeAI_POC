@@ -1,0 +1,12 @@
+US-002: User Registration
+
+As a new visitor on ShopFlow, I want to register with my email and password
+so that my account is created and I receive a welcome email.
+
+Acceptance Criteria:
+AC1: Registration form requires email, password and confirm password fields.
+AC2: Email must be in valid format — invalid format shows an error message.
+AC3: Password must be at least 8 characters with one uppercase and one number.
+AC4: Confirm password must match password — mismatch shows an error message.
+AC5: Submitting valid details creates the account and redirects to home page.
+AC6: A welcome email is sent to the registered email address after successful registration.

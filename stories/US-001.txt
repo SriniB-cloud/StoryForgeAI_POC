@@ -1,0 +1,17 @@
+US-001: Product Search, Add to Cart and Complete Payment
+
+As a registered shopper on ShopFlow, I want to search for a product, add it
+to my cart, and complete payment so that my order is placed and I receive an
+order confirmation with a unique order ID.
+
+Acceptance Criteria:
+AC1: Shopper must be authenticated before adding to cart or checking out.
+AC2: Search returns relevant results for a valid keyword including product name, price and image.
+AC3: Searching with an empty or invalid keyword shows a no-results message.
+AC4: Shopper can add a product to cart and the cart badge updates to reflect the item count.
+AC5: Cart shows correct product name, quantity and total price.
+AC6: Empty cart disables the checkout button.
+AC7: Checkout accepts valid payment card details and places the order.
+AC8: Successful payment returns an order confirmation page with a unique order ID and status CONFIRMED.
+AC9: Invalid card details such as an expired card or wrong CVV show an appropriate error and not a 500.
+AC10: Session timeout during checkout redirects to login and the cart is preserved after re-login.

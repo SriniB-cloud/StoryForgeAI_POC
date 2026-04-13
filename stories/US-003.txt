@@ -1,0 +1,11 @@
+US-003: Product Review and Rating
+
+As a verified buyer on ShopFlow, I want to submit a star rating and written
+review for a product I purchased so that my review is published on the product page.
+
+Acceptance Criteria:
+AC1: Only verified buyers can submit a review — unverified users see a disabled review form.
+AC2: Star rating is required — submitting without a rating shows an error.
+AC3: Review text must be between 10 and 500 characters.
+AC4: Submitted review appears on the product page after moderation.
+AC5: Each verified buyer can submit only one review per product.
