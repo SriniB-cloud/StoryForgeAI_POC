@@ -58,7 +58,7 @@ The framework runs five stages, driven entirely by a single user story.
 
 ---
 
-## The User Story Used in This POC
+## Representative User Story (POC Demonstration)
 
 **US-001: Product Search, Add to Cart and Complete Payment**
 
