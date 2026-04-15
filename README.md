@@ -44,7 +44,106 @@ The framework runs five stages, driven entirely by a single user story.
 **Stage 4: Coverage Report:** Input — TestSpec + ParsedSpec + test_gen_config.yaml Action — Every test case is mapped back to every acceptance criterion. If a test covers AC3 it is marked green. If any AC has no test against it — it is flagged red. Pyramid compliance is checked against the targets in the config file. A PASS or FAIL verdict is produced against the 80 percent minimum threshold defined in config. Output — Coverage table showing AC status, pyramid compliance, overall score and verdict.
 
 **Stage 5: Code Synthesis Module:** Input — TestSpec + test_data.json + Jinja2 templates + app_context.yaml Action — Jinja2 reads each test case and fills it into the correct template like a mail merge. No LLM is involved at this stage — the output is deterministic, fast and identical every run. The template for API tests produces Java. The template for UI and E2E tests produces TypeScript. app_context.yaml provides the base URLs and endpoints so nothing is hardcoded in the templates. Output — ShopFlowTest.java, shopflow-ui.spec.ts, shopflow-e2e.spec.ts — executable test scripts ready to run.
+```
+# 🚀 StoryForge AI — End-to-End Test Generation Pipeline
 
+---
+
+## 🟦 Stage 1 — Parsing Engine
+**Inputs**
+- US-001.txt
+- generate.py
+- app_context.yaml ⭐
+- test_gen_config.yaml
+
+**Process**
+- Mistral reads story (zero-shot)
+- App domain injected via `app_context`
+- JSON schema enforced
+- Pydantic validation (retry up to 3x)
+
+**Output**
+- ParsedSpec JSON  
+  `actor | action | goal | preconditions | AC`
+
+---
+
+## 🟩 Stage 2 — Test Case Generator (4-Agent Pipeline)
+**Inputs**
+- ParsedSpec JSON
+- test_gen_config.yaml
+- app_context.yaml ⭐
+
+**Pipeline**
+- **Planner** → config → ratio  
+- **Generator** → Mistral + real endpoints  
+- **Critic** → AC coverage check  
+- **Refiner** → gaps fixed, locked  
+
+**Output**
+- TestSpec  
+  `ID | area | level | endpoint | expected result`
+
+---
+
+## 🟨 Stage 3 — Test Data Generator
+**Inputs**
+- test_gen_config.yaml
+- generate.py
+
+**Process**
+- Faker (seed=42) → deterministic
+- Same data every CI run → zero flakiness
+- Sensitive data generated locally (never sent to LLM)
+
+**Output**
+- test_data.json  
+  `usernames | emails | cards | product IDs`
+
+---
+
+## 🟦 Stage 4 — Coverage Report
+**Inputs**
+- TestSpec
+- ParsedSpec
+- test_gen_config.yaml
+
+**Process**
+- Map every test case to AC
+- Coverage tracking (green/red)
+- Pyramid % calculation
+- PASS/FAIL threshold (80%)
+
+**Output**
+- Coverage table  
+  `AC status | pyramid compliance | score | verdict`
+
+---
+
+## 🟧 Stage 5 — Code Synthesis Module
+**Inputs**
+- TestSpec
+- test_data.json
+- Jinja2 templates
+- app_context.yaml ⭐
+
+**Process**
+- Jinja2 templating (no LLM)
+- Deterministic → identical every run
+- No hardcoding (uses app_context)
+
+**Output**
+- ShopFlowTest.java (API)
+- shopflow-ui.spec.ts (UI)
+- shopflow-e2e.spec.ts (E2E)
+
+---
+
+## ✅ Final Output
+**Executable Test Scripts — Ready to Run**
+- REST-assured (API)
+- Playwright (UI + E2E)
+```
 ---
 
 ## The User Story Used in This POC
