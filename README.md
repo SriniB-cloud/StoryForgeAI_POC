@@ -35,8 +35,6 @@ sequenceDiagram
 ```
 The framework runs five stages, driven entirely by a single user story.
 
-The framework runs five stages, driven entirely by a single user story.
-
 **Stage 1: Parsing Engine:** Input — User story text file + generate.py Action — Mistral reads the user story with no prior examples — just clear instructions in generate.py telling it what to extract and in what format. Those instructions are the prompt. The output must match a strict predefined structure called a schema. If it does not match — Pydantic rejects it and Mistral tries again up to 3 times. Output — ParsedSpec JSON — actor, action, goal, preconditions, acceptance criteria.
 
 **Stage 2: Test Case Generator:** Input — ParsedSpec JSON + test_gen_config.yaml + generate.py Action — Four agents run in sequence. Planner reads the config file and decides how many tests to create per layer following the pyramid ratio. Generator calls Mistral and creates test cases for every acceptance criterion covering positive, negative and edge scenarios. Critic checks that every AC is covered by at least one test. Refiner fixes any gaps and removes duplicates — then locks the final list. Output — TestSpec — a validated list of test cases with ID, area, level and expected result.
