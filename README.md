@@ -35,15 +35,30 @@ sequenceDiagram
 ```
 The framework runs five stages, driven entirely by a single user story.
 
-**Stage 1:** **Parsing Engine** : Input — _User story text file + generate.py **Action** — Mistral reads the user story with no prior examples — just clear instructions in generate.py telling it what to extract and in what format. Those instructions are the prompt. The output must match a strict predefined structure called a schema. If it does not match — Pydantic rejects it and Mistral tries again up to 3 times. Output — ParsedSpec JSON — actor, action, goal, preconditions, acceptance criteria.
+**Stage 1: Parsing Engine:**
+_Input _— User story text file + generate.py 
+_Action _— Mistral reads the user story with no prior examples — just clear instructions in generate.py telling it what to extract and in what format. Those instructions are the prompt. The output must match a strict predefined structure called a schema. If it does not match — Pydantic rejects it and Mistral tries again up to 3 times. 
+_Output_ — ParsedSpec JSON — actor, action, goal, preconditions, acceptance criteria.
 
-**Stage 2:** **Test Case Generator**: Input — _ParsedSpec JSON + test_gen_config.yaml + generate.py **Action** — Four agents run in sequence. Planner reads the config file and decides how many tests to create per layer following the pyramid ratio. Generator calls Mistral and creates test cases for every acceptance criterion covering positive, negative and edge scenarios. Critic checks that every AC is covered by at least one test. Refiner fixes any gaps and removes duplicates — then locks the final list. Output — TestSpec — a validated list of test cases with ID, area, level and expected result.
+**Stage 2: Test Case Generator:**
+_Input _— ParsedSpec JSON + test_gen_config.yaml + generate.py 
+_Action _— Four agents run in sequence. Planner reads the config file and decides how many tests to create per layer following the pyramid ratio. Generator calls Mistral and creates test cases for every acceptance criterion covering positive, negative and edge scenarios. Critic checks that every AC is covered by at least one test. Refiner fixes any gaps and removes duplicates — then locks the final list. 
+_Output_ — TestSpec — a validated list of test cases with ID, area, level and expected result.
 
-****Stage 3: **Test Data Generator**: Input — test_gen_config.yaml + generate.py **Action** — Faker generates realistic test data using a fixed seed of 42. The same seed means identical data every single CI run — zero flakiness. Sensitive fields like passwords and card numbers are generated locally by Faker and never sent to Mistral. Output — test_data.json — usernames, emails, card numbers, product IDs — one file used by all three test layers.
+**Stage 3: Test Data Generator:**
+_Input _— test_gen_config.yaml + generate.py 
+_Action _— Faker generates realistic test data using a fixed seed of 42. The same seed means identical data every single CI run — zero flakiness. Sensitive fields like passwords and card numbers are generated locally by Faker and never sent to Mistral. 
+_Output _— test_data.json — usernames, emails, card numbers, product IDs — one file used by all three test layers.
 
-****Stage 4:** Coverage Report**: Input — _TestSpec + ParsedSpec + test_gen_config.yaml_ **Action **— Every test case is mapped back to every acceptance criterion. If a test covers AC3 it is marked green. If any AC has no test against it — it is flagged red. Pyramid compliance is checked against the targets in the config file. A PASS or FAIL verdict is produced against the 80 percent minimum threshold defined in config. Output — Coverage table showing AC status, pyramid compliance, overall score and verdict.
+**Stage 4: Coverage Report:**
+_Input _— TestSpec + ParsedSpec + test_gen_config.yaml 
+_Action _— Every test case is mapped back to every acceptance criterion. If a test covers AC3 it is marked green. If any AC has no test against it — it is flagged red. Pyramid compliance is checked against the targets in the config file. A PASS or FAIL verdict is produced against the 80 percent minimum threshold defined in config. 
+_Output_ — Coverage table showing AC status, pyramid compliance, overall score and verdict.
 
-****Stage 5: ** Code Synthesis Module**: Input — _TestSpec + test_data.json + Jinja2 templates + app_context.yaml_ **Action** — Jinja2 reads each test case and fills it into the correct template like a mail merge. No LLM is involved at this stage — the output is deterministic, fast and identical every run. The template for API tests produces Java. The template for UI and E2E tests produces TypeScript. app_context.yaml provides the base URLs and endpoints so nothing is hardcoded in the templates. Output — ShopFlowTest.java, shopflow-ui.spec.ts, shopflow-e2e.spec.ts — executable test scripts ready to run.
+**Stage 5: Code Synthesis Module:**
+_Input _— TestSpec + test_data.json + Jinja2 templates + app_context.yaml 
+_Action_ — Jinja2 reads each test case and fills it into the correct template like a mail merge. No LLM is involved at this stage — the output is deterministic, fast and identical every run. The template for API tests produces Java. The template for UI and E2E tests produces TypeScript. app_context.yaml provides the base URLs and endpoints so nothing is hardcoded in the templates. 
+_Output _— ShopFlowTest.java, shopflow-ui.spec.ts, shopflow-e2e.spec.ts — executable test scripts ready to run.
 
 ---
 
