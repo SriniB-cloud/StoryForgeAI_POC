@@ -150,3 +150,9 @@ step_library:
   USE_COMMON_FLOW:authenticated_user: flows.authenticated_user
   USE_COMMON_FLOW:empty_cart: flows.empty_cart
   USE_COMMON_FLOW:product_in_cart: flows.product_in_cart
+# ── Locators ─────────────────────────────────────────────
+  locators:
+  source: locators/shopflow_locators.json
+  strategy: data-testid
+  fallback: aria
+  note: File provided by dev team at project start
