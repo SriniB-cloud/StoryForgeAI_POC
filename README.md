@@ -38,7 +38,7 @@ The framework runs five stages, driven entirely by a single user story.
 **Stage 1: Parsing Engine:**
 Input — _User story text file + generate.py_; 
 Action — Mistral reads the user story with no prior examples — just clear instructions in generate.py telling it what to extract and in what format. Those instructions are the prompt. The output must match a strict predefined structure called a schema. If it does not match — Pydantic rejects it and Mistral tries again up to 3 times;
-Output — ParsedSpec JSON — actor, action, goal, preconditions, acceptance criteria.
+Output — _ParsedSpec JSON_ — actor, action, goal, preconditions, acceptance criteria.
 
 **Stage 2: Test Case Generator:**
 _Input _— ParsedSpec JSON + test_gen_config.yaml + generate.py 
