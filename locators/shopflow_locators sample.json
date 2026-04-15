@@ -1,0 +1,41 @@
+{
+  "_readme": "Sample locator seed map — replace with real values provided by dev team at project start",
+  "auth": {
+    "email":    "[data-testid='email-input']",
+    "password": "[data-testid='password-input']",
+    "loginBtn": "[data-testid='login-btn']",
+    "errorMsg": "[data-testid='error-message']"
+  },
+  "search": {
+    "input":     "[data-testid='search-input']",
+    "button":    "[data-testid='search-button']",
+    "results":   "[data-testid='search-results']",
+    "firstItem": "[data-testid='product-card']:first-child",
+    "noResults": "[data-testid='no-results-message']"
+  },
+  "product": {
+    "title":     "[data-testid='product-title']",
+    "price":     "[data-testid='product-price']",
+    "addToCart": "[data-testid='add-to-cart-btn']"
+  },
+  "cart": {
+    "icon":     "[data-testid='cart-icon']",
+    "badge":    "[data-testid='cart-badge']",
+    "items":    "[data-testid='cart-item']",
+    "total":    "[data-testid='cart-total']",
+    "checkout": "[data-testid='checkout-btn']",
+    "empty":    "[data-testid='empty-cart-message']"
+  },
+  "checkout": {
+    "cardNumber": "[data-testid='card-number']",
+    "expiry":     "[data-testid='card-expiry']",
+    "cvv":        "[data-testid='card-cvv']",
+    "name":       "[data-testid='card-name']",
+    "payButton":  "[data-testid='pay-button']"
+  },
+  "confirmation": {
+    "orderId": "[data-testid='order-id']",
+    "status":  "[data-testid='order-status']",
+    "message": "[data-testid='confirmation-message']"
+  }
+}
