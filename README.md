@@ -35,19 +35,15 @@ sequenceDiagram
 ```
 The framework runs five stages, driven entirely by a single user story.
 
-**Stage 1 — Parsing Engine.** Mistral 7B via Ollama reads the user story and extracts the actor, action, goal, constraints and all acceptance criteria. Output is a `ParsedSpec` JSON object validated by Pydantic v2. Malformed LLM responses are automatically rejected and retried.
+**Stage 1:** Parsing Engine Input — User story text file + generate.py Action — Mistral reads the user story with no prior examples — just clear instructions in generate.py telling it what to extract and in what format. Those instructions are the prompt. The output must match a strict predefined structure called a schema. If it does not match — Pydantic rejects it and Mistral tries again up to 3 times. Output — ParsedSpec JSON — actor, action, goal, preconditions, acceptance criteria.
 
-**Stage 2 — Test Case Generator (4-Agent Pipeline).** Four agents work in sequence:
-- **Planner** — reads `test_gen_config.yaml`, decides pyramid split based on target ratios
-- **Generator** — calls Mistral to create test cases per AC covering positive, negative and edge scenarios
-- **Critic** — automatically identifies coverage gaps and flags missing ACs
-- **Refiner** — finalises, deduplicates and fills any remaining AC gaps
+**Stage 2: **Test Case Generator Input — ParsedSpec JSON + test_gen_config.yaml + generate.py Action — Four agents run in sequence. Planner reads the config file and decides how many tests to create per layer following the pyramid ratio. Generator calls Mistral and creates test cases for every acceptance criterion covering positive, negative and edge scenarios. Critic checks that every AC is covered by at least one test. Refiner fixes any gaps and removes duplicates — then locks the final list. Output — TestSpec — a validated list of test cases with ID, area, level and expected result.
 
-**Stage 3 — Test Data Generator.** Faker generates deterministic test data using `seed=42`. The same data is produced on every CI run. Sensitive fields such as passwords and card numbers are generated locally — never sent to the LLM.
+**Stage 3: **Test Data Generator Input — test_gen_config.yaml + generate.py Action — Faker generates realistic test data using a fixed seed of 42. The same seed means identical data every single CI run — zero flakiness. Sensitive fields like passwords and card numbers are generated locally by Faker and never sent to Mistral. Output — test_data.json — usernames, emails, card numbers, product IDs — one file used by all three test layers.
 
-**Stage 4 — Coverage Report.** Every test case is mapped back to every acceptance criterion. Pyramid compliance is checked against target ratios in `test_gen_config.yaml`. A PASS or FAIL verdict is produced against an 80 percent minimum threshold.
+**Stage 4:** Coverage Report Input — TestSpec + ParsedSpec + test_gen_config.yaml Action — Every test case is mapped back to every acceptance criterion. If a test covers AC3 it is marked green. If any AC has no test against it — it is flagged red. Pyramid compliance is checked against the targets in the config file. A PASS or FAIL verdict is produced against the 80 percent minimum threshold defined in config. Output — Coverage table showing AC status, pyramid compliance, overall score and verdict.
 
-**Stage 5 — Code Synthesis Module.** Jinja2 templates render each test case into real executable code. No LLM is involved at this stage. Output is deterministic, fast and fully auditable.
+**Stage 5: ** Code Synthesis Module Input — TestSpec + test_data.json + Jinja2 templates + app_context.yaml Action — Jinja2 reads each test case and fills it into the correct template like a mail merge. No LLM is involved at this stage — the output is deterministic, fast and identical every run. The template for API tests produces Java. The template for UI and E2E tests produces TypeScript. app_context.yaml provides the base URLs and endpoints so nothing is hardcoded in the templates. Output — ShopFlowTest.java, shopflow-ui.spec.ts, shopflow-e2e.spec.ts — executable test scripts ready to run.
 
 ---
 
